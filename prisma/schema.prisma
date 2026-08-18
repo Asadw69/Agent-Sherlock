@@ -1,0 +1,273 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Severity levels for incidents
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Status of an incident
+enum IncidentStatus {
+  DRAFT
+  READY
+  INVESTIGATING
+  COMPLETED
+  FAILED
+}
+
+// Investigation status
+enum InvestigationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// Investigation phase
+enum InvestigationPhase {
+  UNDERSTAND
+  LOGS
+  TIMELINE
+  CODE
+  GIT
+  HYPOTHESES
+  CONCLUSION
+}
+
+// Event activity status
+enum EventStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// Evidence strength
+enum EvidenceStrength {
+  WEAK
+  STRONG
+  CONFIRMED
+}
+
+// Evidence type
+enum EvidenceType {
+  LOG
+  CODE
+  GIT
+  DEPLOYMENT
+  METRIC
+}
+
+// Timeline event type
+enum TimelineEventType {
+  DEPLOYMENT
+  ERROR
+  METRIC
+  SERVICE
+  INFRASTRUCTURE
+}
+
+// Hypothesis status
+enum HypothesisStatus {
+  LIKELY
+  POSSIBLE
+  UNLIKELY
+}
+
+model Incident {
+  id                  String    @id @default(cuid())
+  title               String
+  description         String
+  severity            SeverityLevel
+  serviceName         String
+  deploymentVersion   String?
+  deploymentTimestamp DateTime?
+  status              IncidentStatus @default(DRAFT)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  investigation       Investigation?
+  uploadedFiles       UploadedFile[]
+
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Investigation {
+  id                String    @id @default(cuid())
+  incidentId        String    @unique
+  incident          Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  status            InvestigationStatus @default(PENDING)
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+
+  rootCause         String?
+  confidence        Int? // 0-100
+  explanation       String?
+  summary           String? // concise AI investigation summary
+  affectedComponents String[] @default([])
+  errorMessage      String? // populated when status is FAILED
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  events            InvestigationEvent[]
+  evidence          Evidence[]
+  timelineEvents    TimelineEvent[]
+  hypotheses        Hypothesis[]
+  suspiciousCommits SuspiciousCommit[]
+  report            Report?
+  recommendedFix    RecommendedFix?
+
+  @@index([status])
+  @@index([incidentId])
+}
+
+model Hypothesis {
+  id                String    @id @default(cuid())
+  investigationId   String
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  title             String
+  description       String
+  status            HypothesisStatus
+  supportingEvidence String?
+  contradictingEvidence String?
+
+  createdAt         DateTime  @default(now())
+
+  @@index([investigationId])
+}
+
+model SuspiciousCommit {
+  id                String    @id @default(cuid())
+  investigationId   String
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  commitHash        String
+  message           String
+  author            String?
+  timestamp         DateTime?
+  relevance         String
+  changedFiles      String[] @default([])
+
+  createdAt         DateTime  @default(now())
+
+  @@index([investigationId])
+}
+
+model InvestigationEvent {
+  id                String    @id @default(cuid())
+  investigationId   String
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  phase             InvestigationPhase
+  activity          String
+  status            EventStatus @default(PENDING)
+  timestamp         DateTime  @default(now())
+
+  createdAt         DateTime  @default(now())
+
+  @@index([investigationId])
+  @@index([timestamp])
+}
+
+model Evidence {
+  id                String    @id @default(cuid())
+  investigationId   String
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  type              EvidenceType
+  title             String
+  description       String
+  strength          EvidenceStrength
+
+  content           String?
+  sourceFile        String?
+  lineNumber        Int? // start line when a range is referenced
+  lineEnd           Int?
+  commit            String? // git commit hash when sourceType is git
+  eventTimestamp    DateTime? // timestamp the evidence refers to, if any
+
+  createdAt         DateTime  @default(now())
+
+  @@index([investigationId])
+  @@index([type])
+}
+
+model TimelineEvent {
+  id                String    @id @default(cuid())
+  investigationId   String
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  timestamp         DateTime
+  title             String
+  description       String
+  eventType         TimelineEventType
+
+  createdAt         DateTime  @default(now())
+
+  @@index([investigationId])
+  @@index([timestamp])
+}
+
+model RecommendedFix {
+  id                String    @id @default(cuid())
+  investigationId   String    @unique
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  immediate         String
+  longTerm          String
+  monitoring        String
+  reasoningSummary  String? // concise explanation tying the fix back to the evidence
+  relatedEvidence   String[] @default([]) // short evidence references the fix is based on
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Report {
+  id                String    @id @default(cuid())
+  investigationId   String    @unique
+  investigation     Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  summary           String
+  content           String?
+
+  generatedAt       DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model UploadedFile {
+  id                String    @id @default(cuid())
+  incidentId        String
+  incident          Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  filename          String
+  originalName      String
+  filePath          String
+  fileType          String // 'log' or 'repository'
+  mimeType          String
+  size              Int
+
+  createdAt         DateTime  @default(now())
+
+  @@index([incidentId])
+  @@index([fileType])
+}

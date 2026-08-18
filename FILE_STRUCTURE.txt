@@ -1,0 +1,54 @@
+AgentSherlock/
+├── app/
+│   ├── layout.tsx ..................... Root layout
+│   ├── page.tsx ....................... Landing page
+│   ├── globals.css .................... Global styles
+│   ├── dashboard/
+│   │   ├── layout.tsx ................ Dashboard layout
+│   │   └── page.tsx .................. Dashboard page
+│   ├── incidents/
+│   │   └── new/
+│   │       └── page.tsx ............. New incident form
+│   └── investigations/
+│       └── [incidentId]/
+│           └── page.tsx ............ Investigation detail
+│
+├── components/
+│   ├── layout/
+│   │   └── navbar.tsx ................ Navigation bar
+│   ├── ui/
+│   │   ├── button.tsx ............... Button component
+│   │   ├── card.tsx ................. Card component
+│   │   ├── badge.tsx ............... Badge component
+│   │   ├── input.tsx ............... Input field
+│   │   ├── select.tsx .............. Select dropdown
+│   │   └── textarea.tsx ............ Text area
+│   ├── dashboard/
+│   │   ├── stat-card.tsx ........... Statistics card
+│   │   └── incident-list.tsx ....... Incident list
+│   ├── incidents/
+│   │   └── file-upload.tsx ......... File upload component
+│   └── investigation/
+│       ├── root-cause-card.tsx ..... Root cause display
+│       ├── timeline.tsx ............ Timeline visualization
+│       ├── evidence-section.tsx .... Evidence display
+│       ├── activity-feed.tsx ....... Activity log
+│       └── recommended-fix.tsx ..... Fix recommendations
+│
+├── lib/
+│   ├── types.ts ...................... TypeScript interfaces
+│   └── utils.ts ..................... Helper functions
+│
+├── public/ ........................... Static assets
+├── uploads/ ......................... Upload directory (for Session 2)
+│
+├── package.json ..................... Dependencies
+├── tsconfig.json .................... TypeScript config
+├── next.config.ts ................... Next.js config
+├── tailwind.config.ts ............... Tailwind config
+├── postcss.config.mjs ............... PostCSS config
+│
+├── CLAUDE.md ........................ Session documentation
+├── SESSION_1_SUMMARY.md ............ This summary
+├── FILE_STRUCTURE.txt .............. File listing
+└── Plan.md ......................... Original 25-point requirements
